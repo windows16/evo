@@ -69,13 +69,13 @@
       <a-entity id="octagon-group" position="0 0 0">
         <a-gltf-model 
           src="#img-wally" 
-          position="2 0.1 0" 
+          position="3.8 0.1 0" 
           scale="0.5 0.5 0.5" 
           rotation="0 90 0">
         </a-gltf-model>
         <a-gltf-model 
           src="#img-eva" 
-          position="-2 0.1 0" 
+          position="-3.8 0.1 0" 
           scale="0.5 0.5 0.5" 
           rotation="0 90 0">
         </a-gltf-model>
@@ -107,63 +107,93 @@
    
   <script>
     
-    // Ejecutar cuando la página y la cámara estén listas
-    async function intentarForzarEnfoque() {
-      try {
-        // Busca el elemento video usado por el navegador (AR.js/A-Frame crea uno)
-        const video = document.querySelector('video');
-        if (!video) {
-          console.warn('video no encontrado — intenta más tarde');
-          return;
-        }
-  
-        // Espera a que haya una pista de video activa
-        const stream = video.srcObject || (video.captureStream ? video.captureStream() : null);
-        const tracks = stream ? stream.getVideoTracks() : [];
-        if (!tracks || tracks.length === 0) {
-          console.warn('No hay pistas de video disponibles aún');
-          return;
-        }
-  
-        const track = tracks[0];
-  
-        // Revisa capacidades
-        const caps = track.getCapabilities ? track.getCapabilities() : {};
-        console.log('capabilities', caps);
-  
-        // Intentar modo continuo si está disponible
-        if (caps.focusMode && caps.focusMode.includes('continuous')) {
-          await track.applyConstraints({ advanced: [{ focusMode: 'continuous' }] });
-          console.log('focusMode => continuous aplicado');
-        } else if (caps.focusMode && caps.focusMode.includes('single-shot')) {
-          // fallback: single-shot (se dispara al tocar)
-          await track.applyConstraints({ advanced: [{ focusMode: 'single-shot' }] });
-          console.log('focusMode => single-shot aplicado');
-        } else {
-          console.warn('focusMode no soportado por esta cámara');
-        }
-  
-        // Añadir tap-to-focus: al tocar el video, dispara single-shot si está disponible
-        video.addEventListener('click', async () => {
-          try {
-            if (caps.focusMode && caps.focusMode.includes('single-shot')) {
-              await track.applyConstraints({ advanced: [{ focusMode: 'single-shot' }] });
-              console.log('single-shot focus disparado (tap)');
-            } else {
-              // Alternativa: reenviar constraints para forzar ajuste de exposición/resolución
-              await track.applyConstraints({ width: { ideal: 1280 }, height: { ideal: 720 } });
-              console.log('applyConstraints para forzar reajuste');
-            }
-          } catch (err) {
-            console.warn('Error al intentar tap-to-focus:', err);
-          }
-        });
-  
-      } catch (err) {
-        console.error('Error configurar enfoque:', err);
-      }
-    }
+    (async function enableCameraZoom() {
+      // espera el elemento <video> que usa AR.js/A-Frame
+      const waitForVideo = () => new Promise(res => {
+        let tries = 0;
+        const t = setInterval(() => {
+          const v = document.querySelector('video');
+          if (v || ++tries > 30) { clearInterval(t); res(document.querySelector('video')); }
+        }, 300);
+      });
 
+      const video = await waitForVideo();
+      if (!video) { console.warn('video no encontrado para zoom'); return; }
+
+      const stream = video.srcObject;
+      const tracks = stream ? stream.getVideoTracks() : [];
+      if (!tracks || tracks.length === 0) { console.warn('no hay pistas de video'); return; }
+      const track = tracks[0];
+      const caps = track.getCapabilities ? track.getCapabilities() : {};
+      console.log('camera capabilities:', caps);
+
+      // Si la cámara soporta zoom, habilitar control por doble-tap y pinch
+      if (caps.zoom) {
+        const minZ = caps.zoom.min || 1;
+        const maxZ = caps.zoom.max || 1;
+        let currentZoom = Math.min(maxZ, (caps.zoom.step ? minZ + caps.zoom.step*2 : (minZ + maxZ) / 2));
+
+        // aplicar un valor inicial razonable
+        try { await track.applyConstraints({ advanced: [{ zoom: currentZoom }] }); }
+        catch (err) { console.warn('applyConstraints inicial falló:', err); }
+
+        // doble-tap para alternar entre min y max
+        let lastTap = 0;
+        video.addEventListener('touchend', async (e) => {
+          const now = Date.now();
+          if (now - lastTap < 300) { // doble tap detectado
+            currentZoom = (Math.abs(currentZoom - maxZ) < 0.01) ? minZ : maxZ;
+            try { await track.applyConstraints({ advanced: [{ zoom: currentZoom }] }); console.log('zoom toggled:', currentZoom); }
+            catch (err) { console.warn('toggle zoom falló:', err); }
+          }
+          lastTap = now;
+        });
+
+        // pinch to zoom
+        let pinchStartDist = 0;
+        let pinchStartZoom = currentZoom;
+        video.addEventListener('touchstart', (e) => {
+          if (e.touches.length === 2) {
+            const dx = e.touches[0].pageX - e.touches[1].pageX;
+            const dy = e.touches[0].pageY - e.touches[1].pageY;
+            pinchStartDist = Math.hypot(dx, dy);
+            pinchStartZoom = currentZoom;
+          }
+        }, { passive: true });
+
+        video.addEventListener('touchmove', async (e) => {
+          if (e.touches.length === 2 && pinchStartDist > 0) {
+            const dx = e.touches[0].pageX - e.touches[1].pageX;
+            const dy = e.touches[0].pageY - e.touches[1].pageY;
+            const dist = Math.hypot(dx, dy);
+            const ratio = dist / pinchStartDist;
+            let newZoom = pinchStartZoom * ratio;
+            newZoom = Math.max(minZ, Math.min(maxZ, newZoom));
+            if (Math.abs(newZoom - currentZoom) > (caps.zoom.step || 0.01)) {
+              try { await track.applyConstraints({ advanced: [{ zoom: newZoom }] }); currentZoom = newZoom; }
+              catch (err) { /* ignora errores puntuales */ }
+            }
+          }
+        }, { passive: true });
+
+        video.addEventListener('touchend', () => { if (event.touches.length < 2) pinchStartDist = 0; });
+
+        console.log('Zoom habilitado: doble-tap para alternar, pinch para ajustar.');
+        return;
+      }
+
+      // Si no hay soporte de zoom, intentar forzar mayor resolución y continuous focus
+      try {
+        await track.applyConstraints({
+          width: { ideal: 1920 },
+          height: { ideal: 1080 },
+          advanced: [{ focusMode: 'continuous' }]
+        });
+        console.log('Resolución/focus aplicada (si soportado).');
+      } catch (err) {
+        console.warn('No se pudo aplicar zoom/resolution/focus:', err);
+      }
+    })();
     // Utilidad: crear un "octágono" como cilindro de 8 lados, muy delgado
     function createImage(id, position, src, scale = {x: 1, y: 1, z: 1}) {
       const img = document.createElement('a-image');
@@ -174,8 +204,8 @@
       img.setAttribute('position', position);
       img.setAttribute('rotation', '-90 0 0'); // Rotación para que quede plana
       img.setAttribute('scale', `${scale.x} ${scale.y} ${scale.z}`);
-      img.setAttribute('width', 0.6); // Ajusta el ancho de la imagen
-      img.setAttribute('height', 0.4); // Ajusta el alto de la imagen
+      img.setAttribute('width', 1.0); // Ajusta el ancho de la imagen
+      img.setAttribute('height', 0.75); // Ajusta el alto de la imagen
       return img;
     }
 
@@ -192,7 +222,7 @@
       '#img-pp', '#img-hcm', '#img-mm', '#img-qm', '#img-Aplicativos SD'
     ];
  
-    const R = 1.35; // radio del anillo
+    const R = 2.5; // radio del anillo
     const Y = 0.1;  // altura
     const count = 10;
 
@@ -251,8 +281,8 @@
     document.body.addEventListener('touchmove', (e) => { e.preventDefault(); }, { passive: false });
     
       const centerPosition = { x: 0, y: 0.1, z: 0 }; 
-      const innerRadius = 0.75;   // Radio cuando están adentro
-      const outerRadius = 2.5;   // Radio cuando se salen afuera
+      const innerRadius = 1.5;   // Radio cuando están adentro
+      const outerRadius = 3.8;   // Radio cuando se salen afuera
       const speed = 0.01;
 
       const eva = document.querySelector('[src="#img-eva"]');
@@ -309,6 +339,4 @@
 
   </script>
 </body>
-
 </html>
-
