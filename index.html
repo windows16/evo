@@ -117,8 +117,8 @@
       img.setAttribute('position', position);
       img.setAttribute('rotation', '-90 0 0'); // Rotación para que quede plana
       img.setAttribute('scale', `${scale.x} ${scale.y} ${scale.z}`);
-      img.setAttribute('width', 0.95); // Ajusta el ancho de la imagen
-      img.setAttribute('height', 0.7); // Ajusta el alto de la imagen
+      img.setAttribute('width', 1.0); // Ajusta el ancho de la imagen
+      img.setAttribute('height', 0.75); // Ajusta el alto de la imagen
       return img;
     }
 
@@ -194,8 +194,8 @@
     document.body.addEventListener('touchmove', (e) => { e.preventDefault(); }, { passive: false });
     
       const centerPosition = { x: 0, y: 0.1, z: 0 }; 
-      const innerRadius = 1.3;   // Radio cuando están adentro
-      const outerRadius = 3.6;   // Radio cuando se salen afuera
+      const innerRadius = 1.4;   // Radio cuando están adentro
+      const outerRadius = 3.7;   // Radio cuando se salen afuera
       const speed = 0.01;
 
       const eva = document.querySelector('[src="#img-eva"]');
