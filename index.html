@@ -69,13 +69,13 @@
       <a-entity id="octagon-group" position="0 0 0">
         <a-gltf-model 
           src="#img-wally" 
-          position="4.3 0.1 0" 
+          position="4.6 0.1 0" 
           scale="0.5 0.5 0.5" 
           rotation="0 90 0">
         </a-gltf-model>
         <a-gltf-model 
           src="#img-eva" 
-          position="-4.3 0.1 0" 
+          position="-4.6 0.1 0" 
           scale="0.5 0.5 0.5" 
           rotation="0 90 0">
         </a-gltf-model>
@@ -117,15 +117,15 @@
       img.setAttribute('position', position);
       img.setAttribute('rotation', '-90 0 0'); // Rotación para que quede plana
       img.setAttribute('scale', `${scale.x} ${scale.y} ${scale.z}`);
-      img.setAttribute('width', 2.0); // Ajusta el ancho de la imagen
-      img.setAttribute('height', 1.3); // Ajusta el alto de la imagen
+      img.setAttribute('width', 2.3); // Ajusta el ancho de la imagen
+      img.setAttribute('height', 1.6); // Ajusta el alto de la imagen
       return img;
     }
 
     const group = document.getElementById('octagon-group');
     // Octágono central inicial
     const centerId = 'octagon-center';
-    const center = createImage(centerId, '0 0.13 0', '#img-evolution', {x:2.6, y:2.6, z:2.6})
+    const center = createImage(centerId, '0 0.16 0', '#img-evolution', {x:2.8, y:2.8, z:2.8})
     center.dataset.isCenter = 'true';
     group.appendChild(center);
     
@@ -135,7 +135,7 @@
       '#img-pp', '#img-hcm', '#img-mm', '#img-qm', '#img-Aplicativos SD'
     ];
  
-    const R = 2.7; // radio del anillo
+    const R = 2.8; // radio del anillo
     const Y = 0.1;  // altura
     const count = 10;
 
@@ -168,7 +168,7 @@
 
       const targetOriginalSlot = target.dataset.originalPosition || `${targetOriginalPos.x} ${targetOriginalPos.y} ${targetOriginalPos.z}`;
       const centerScaleSmall = '1 1 1';
-      const bigScale = '2.5 2.5 2.5';
+      const bigScale = '2.8 2.8 2.8';
 
       // 1) Mover el target al centro y agrandarlo
       animateTo(target, '0 0.1 0', bigScale);
@@ -194,8 +194,8 @@
     document.body.addEventListener('touchmove', (e) => { e.preventDefault(); }, { passive: false });
     
       const centerPosition = { x: 0, y: 0.1, z: 0 }; 
-      const innerRadius = 1.8;   // Radio cuando están adentro
-      const outerRadius = 4.0;   // Radio cuando se salen afuera
+      const innerRadius = 2.0;   // Radio cuando están adentro
+      const outerRadius = 4.2;   // Radio cuando se salen afuera
       const speed = 0.01;
 
       const eva = document.querySelector('[src="#img-eva"]');
@@ -253,3 +253,4 @@
   </script>
 </body>
 </html>
+
