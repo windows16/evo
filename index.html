@@ -117,15 +117,15 @@
       img.setAttribute('position', position);
       img.setAttribute('rotation', '-90 0 0'); // Rotación para que quede plana
       img.setAttribute('scale', `${scale.x} ${scale.y} ${scale.z}`);
-      img.setAttribute('width', 2.5); // Ajusta el ancho de la imagen
-      img.setAttribute('height', 1.5); // Ajusta el alto de la imagen
+      img.setAttribute('width', 2.2); // Ajusta el ancho de la imagen
+      img.setAttribute('height', 1.2); // Ajusta el alto de la imagen
       return img;
     }
 
     const group = document.getElementById('octagon-group');
     // Octágono central inicial
     const centerId = 'octagon-center';
-    const center = createImage(centerId, '0 0.18 0', '#img-evolution', {x:3.0, y:3.0, z:3.0})
+    const center = createImage(centerId, '0 0.15 0', '#img-evolution', {x:2.7, y:2.7, z:2.7})
     center.dataset.isCenter = 'true';
     group.appendChild(center);
     
@@ -168,7 +168,7 @@
 
       const targetOriginalSlot = target.dataset.originalPosition || `${targetOriginalPos.x} ${targetOriginalPos.y} ${targetOriginalPos.z}`;
       const centerScaleSmall = '1 1 1';
-      const bigScale = '3.0 3.0 3.0';
+      const bigScale = '2.7 2.7 2.7';
 
       // 1) Mover el target al centro y agrandarlo
       animateTo(target, '0 0.1 0', bigScale);
@@ -253,6 +253,7 @@
   </script>
 </body>
 </html>
+
 
 
 
