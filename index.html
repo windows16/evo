@@ -164,16 +164,6 @@
       }
     }
 
-  // Intentar varias veces hasta que el video esté listo
-  let intentos = 0;
-  const intervalo = setInterval(() => {
-    intentos++;
-    if (document.querySelector('video') || intentos > 12) {
-      clearInterval(intervalo);
-      intentarForzarEnfoque();
-    }
-  }, 500);
-
     // Utilidad: crear un "octágono" como cilindro de 8 lados, muy delgado
     function createImage(id, position, src, scale = {x: 1, y: 1, z: 1}) {
       const img = document.createElement('a-image');
@@ -321,3 +311,4 @@
 </body>
 
 </html>
+
