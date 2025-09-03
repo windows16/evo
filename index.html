@@ -106,94 +106,7 @@
     <!-- hacemos que se mueva wally y eva como un la rotacion en un eje -->
    
   <script>
-    
-    (async function enableCameraZoom() {
-      // espera el elemento <video> que usa AR.js/A-Frame
-      const waitForVideo = () => new Promise(res => {
-        let tries = 0;
-        const t = setInterval(() => {
-          const v = document.querySelector('video');
-          if (v || ++tries > 30) { clearInterval(t); res(document.querySelector('video')); }
-        }, 300);
-      });
-
-      const video = await waitForVideo();
-      if (!video) { console.warn('video no encontrado para zoom'); return; }
-
-      const stream = video.srcObject;
-      const tracks = stream ? stream.getVideoTracks() : [];
-      if (!tracks || tracks.length === 0) { console.warn('no hay pistas de video'); return; }
-      const track = tracks[0];
-      const caps = track.getCapabilities ? track.getCapabilities() : {};
-      console.log('camera capabilities:', caps);
-
-      // Si la cámara soporta zoom, habilitar control por doble-tap y pinch
-      if (caps.zoom) {
-        const minZ = caps.zoom.min || 1;
-        const maxZ = caps.zoom.max || 1;
-        let currentZoom = Math.min(maxZ, (caps.zoom.step ? minZ + caps.zoom.step*2 : (minZ + maxZ) / 2));
-
-        // aplicar un valor inicial razonable
-        try { await track.applyConstraints({ advanced: [{ zoom: currentZoom }] }); }
-        catch (err) { console.warn('applyConstraints inicial falló:', err); }
-
-        // doble-tap para alternar entre min y max
-        let lastTap = 0;
-        video.addEventListener('touchend', async (e) => {
-          const now = Date.now();
-          if (now - lastTap < 300) { // doble tap detectado
-            currentZoom = (Math.abs(currentZoom - maxZ) < 0.01) ? minZ : maxZ;
-            try { await track.applyConstraints({ advanced: [{ zoom: currentZoom }] }); console.log('zoom toggled:', currentZoom); }
-            catch (err) { console.warn('toggle zoom falló:', err); }
-          }
-          lastTap = now;
-        });
-
-        // pinch to zoom
-        let pinchStartDist = 0;
-        let pinchStartZoom = currentZoom;
-        video.addEventListener('touchstart', (e) => {
-          if (e.touches.length === 2) {
-            const dx = e.touches[0].pageX - e.touches[1].pageX;
-            const dy = e.touches[0].pageY - e.touches[1].pageY;
-            pinchStartDist = Math.hypot(dx, dy);
-            pinchStartZoom = currentZoom;
-          }
-        }, { passive: true });
-
-        video.addEventListener('touchmove', async (e) => {
-          if (e.touches.length === 2 && pinchStartDist > 0) {
-            const dx = e.touches[0].pageX - e.touches[1].pageX;
-            const dy = e.touches[0].pageY - e.touches[1].pageY;
-            const dist = Math.hypot(dx, dy);
-            const ratio = dist / pinchStartDist;
-            let newZoom = pinchStartZoom * ratio;
-            newZoom = Math.max(minZ, Math.min(maxZ, newZoom));
-            if (Math.abs(newZoom - currentZoom) > (caps.zoom.step || 0.01)) {
-              try { await track.applyConstraints({ advanced: [{ zoom: newZoom }] }); currentZoom = newZoom; }
-              catch (err) { /* ignora errores puntuales */ }
-            }
-          }
-        }, { passive: true });
-
-        video.addEventListener('touchend', () => { if (event.touches.length < 2) pinchStartDist = 0; });
-
-        console.log('Zoom habilitado: doble-tap para alternar, pinch para ajustar.');
-        return;
-      }
-
-      // Si no hay soporte de zoom, intentar forzar mayor resolución y continuous focus
-      try {
-        await track.applyConstraints({
-          width: { ideal: 1920 },
-          height: { ideal: 1080 },
-          advanced: [{ focusMode: 'continuous' }]
-        });
-        console.log('Resolución/focus aplicada (si soportado).');
-      } catch (err) {
-        console.warn('No se pudo aplicar zoom/resolution/focus:', err);
-      }
-    })();
+  
 
 
     // Utilidad: crear un "octágono" como cilindro de 8 lados, muy delgado
@@ -343,3 +256,4 @@
 </body>
 
 </html>
+
