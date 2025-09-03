@@ -106,6 +106,74 @@
     <!-- hacemos que se mueva wally y eva como un la rotacion en un eje -->
    
   <script>
+    
+    // Ejecutar cuando la página y la cámara estén listas
+    async function intentarForzarEnfoque() {
+      try {
+        // Busca el elemento video usado por el navegador (AR.js/A-Frame crea uno)
+        const video = document.querySelector('video');
+        if (!video) {
+          console.warn('video no encontrado — intenta más tarde');
+          return;
+        }
+  
+        // Espera a que haya una pista de video activa
+        const stream = video.srcObject || (video.captureStream ? video.captureStream() : null);
+        const tracks = stream ? stream.getVideoTracks() : [];
+        if (!tracks || tracks.length === 0) {
+          console.warn('No hay pistas de video disponibles aún');
+          return;
+        }
+  
+        const track = tracks[0];
+  
+        // Revisa capacidades
+        const caps = track.getCapabilities ? track.getCapabilities() : {};
+        console.log('capabilities', caps);
+  
+        // Intentar modo continuo si está disponible
+        if (caps.focusMode && caps.focusMode.includes('continuous')) {
+          await track.applyConstraints({ advanced: [{ focusMode: 'continuous' }] });
+          console.log('focusMode => continuous aplicado');
+        } else if (caps.focusMode && caps.focusMode.includes('single-shot')) {
+          // fallback: single-shot (se dispara al tocar)
+          await track.applyConstraints({ advanced: [{ focusMode: 'single-shot' }] });
+          console.log('focusMode => single-shot aplicado');
+        } else {
+          console.warn('focusMode no soportado por esta cámara');
+        }
+  
+        // Añadir tap-to-focus: al tocar el video, dispara single-shot si está disponible
+        video.addEventListener('click', async () => {
+          try {
+            if (caps.focusMode && caps.focusMode.includes('single-shot')) {
+              await track.applyConstraints({ advanced: [{ focusMode: 'single-shot' }] });
+              console.log('single-shot focus disparado (tap)');
+            } else {
+              // Alternativa: reenviar constraints para forzar ajuste de exposición/resolución
+              await track.applyConstraints({ width: { ideal: 1280 }, height: { ideal: 720 } });
+              console.log('applyConstraints para forzar reajuste');
+            }
+          } catch (err) {
+            console.warn('Error al intentar tap-to-focus:', err);
+          }
+        });
+  
+      } catch (err) {
+        console.error('Error configurar enfoque:', err);
+      }
+    }
+
+  // Intentar varias veces hasta que el video esté listo
+  let intentos = 0;
+  const intervalo = setInterval(() => {
+    intentos++;
+    if (document.querySelector('video') || intentos > 12) {
+      clearInterval(intervalo);
+      intentarForzarEnfoque();
+    }
+  }, 500);
+
     // Utilidad: crear un "octágono" como cilindro de 8 lados, muy delgado
     function createImage(id, position, src, scale = {x: 1, y: 1, z: 1}) {
       const img = document.createElement('a-image');
@@ -251,4 +319,5 @@
 
   </script>
 </body>
+
 </html>
